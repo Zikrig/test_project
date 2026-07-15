@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import re
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
@@ -18,6 +19,13 @@ SOURCE_LABELS = {
     "source_friends": "От друзей",
     "source_internet": "Через интернет",
 }
+
+# Only digits and optional leading '+'; allowed.
+PHONE_RE = re.compile(r"^\+?\d+$")
+
+
+def _is_valid_phone(value: str) -> bool:
+    return bool(PHONE_RE.fullmatch(value))
 
 
 @router.callback_query(F.data == "register")
@@ -69,6 +77,35 @@ async def process_age(message: Message, state: FSMContext) -> None:
         )
         return
     await state.update_data(age=int(text))
+    await state.set_state(Registration.phone)
+    await message.answer(
+        "Укажите номер телефона.\nМожно использовать только цифры и знак +.",
+        reply_markup=back_kb("back_to_age"),
+    )
+
+
+@router.callback_query(Registration.phone, F.data == "back_to_age")
+async def back_to_age_from_phone(callback: CallbackQuery, state: FSMContext) -> None:
+    await state.set_state(Registration.age)
+    await edit_or_send_text(
+        callback,
+        "Сколько вам лет?",
+        reply_markup=back_kb("back_to_name"),
+    )
+    await callback.answer()
+
+
+@router.message(Registration.phone, F.text)
+async def process_phone(message: Message, state: FSMContext) -> None:
+    phone = (message.text or "").strip()
+    if not _is_valid_phone(phone):
+        await message.answer(
+            "Номер телефона может содержать только цифры и знак + "
+            "(например, +79991234567).",
+            reply_markup=back_kb("back_to_age"),
+        )
+        return
+    await state.update_data(phone=phone)
     await state.set_state(Registration.source)
     await message.answer(
         "Как вы узнали о нас?",
@@ -76,14 +113,14 @@ async def process_age(message: Message, state: FSMContext) -> None:
     )
 
 
-@router.callback_query(Registration.source, F.data == "back_to_age")
-@router.callback_query(Registration.source_other, F.data == "back_to_age")
-async def back_to_age(callback: CallbackQuery, state: FSMContext) -> None:
-    await state.set_state(Registration.age)
+@router.callback_query(Registration.source, F.data == "back_to_phone")
+@router.callback_query(Registration.source_other, F.data == "back_to_phone")
+async def back_to_phone(callback: CallbackQuery, state: FSMContext) -> None:
+    await state.set_state(Registration.phone)
     await edit_or_send_text(
         callback,
-        "Сколько вам лет?",
-        reply_markup=back_kb("back_to_name"),
+        "Укажите номер телефона.\nМожно использовать только цифры и знак +.",
+        reply_markup=back_kb("back_to_age"),
     )
     await callback.answer()
 
@@ -148,6 +185,7 @@ async def _finish_registration(
         username=callback.from_user.username,
         name=data["name"],
         age=data["age"],
+        phone=data["phone"],
         source=source,
     )
     text = (
@@ -175,6 +213,7 @@ async def _finish_registration_message(
         username=message.from_user.username,
         name=data["name"],
         age=data["age"],
+        phone=data["phone"],
         source=source,
     )
     text = (
@@ -193,9 +232,10 @@ async def _persist_and_notify(
     username: str | None,
     name: str,
     age: int,
+    phone: str,
     source: str,
 ) -> bool:
-    await save_registration(telegram_id, username, name, age, source)
+    await save_registration(telegram_id, username, name, age, phone, source)
     ok = True
     try:
         await asyncio.to_thread(
@@ -204,6 +244,7 @@ async def _persist_and_notify(
             username,
             name,
             age,
+            phone,
             source,
         )
     except Exception:
@@ -216,6 +257,7 @@ async def _persist_and_notify(
             username=username,
             name=name,
             age=age,
+            phone=phone,
             source=source,
         )
     except Exception:

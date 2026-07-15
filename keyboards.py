@@ -33,6 +33,6 @@ def source_kb() -> InlineKeyboardMarkup:
                 )
             ],
             [InlineKeyboardButton(text="Другое", callback_data="source_other")],
-            [InlineKeyboardButton(text="Назад", callback_data="back_to_age")],
+            [InlineKeyboardButton(text="Назад", callback_data="back_to_phone")],
         ]
     )

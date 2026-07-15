@@ -24,6 +24,7 @@ def append_registration(
     username: str | None,
     name: str,
     age: int,
+    phone: str,
     source: str,
 ) -> None:
     client = _client()
@@ -35,6 +36,7 @@ def append_registration(
             username or "",
             name,
             age,
+            phone,
             source,
         ],
         value_input_option="USER_ENTERED",

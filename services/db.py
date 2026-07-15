@@ -16,12 +16,27 @@ async def init_db() -> None:
                 username TEXT,
                 name TEXT NOT NULL,
                 age INTEGER NOT NULL,
+                phone TEXT NOT NULL DEFAULT '',
                 source TEXT NOT NULL,
                 created_at TEXT NOT NULL DEFAULT (datetime('now'))
             )
             """
         )
+        await _ensure_column(db, "registrations", "phone", "TEXT NOT NULL DEFAULT ''")
         await db.commit()
+
+
+async def _ensure_column(
+    db: aiosqlite.Connection,
+    table: str,
+    column: str,
+    definition: str,
+) -> None:
+    async with db.execute(f"PRAGMA table_info({table})") as cursor:
+        rows = await cursor.fetchall()
+    names = {row[1] for row in rows}
+    if column not in names:
+        await db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
 
 
 async def save_registration(
@@ -29,14 +44,16 @@ async def save_registration(
     username: str | None,
     name: str,
     age: int,
+    phone: str,
     source: str,
 ) -> None:
     async with aiosqlite.connect(settings.database_path) as db:
         await db.execute(
             """
-            INSERT INTO registrations (telegram_id, username, name, age, source)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO registrations
+                (telegram_id, username, name, age, phone, source)
+            VALUES (?, ?, ?, ?, ?, ?)
             """,
-            (telegram_id, username, name, age, source),
+            (telegram_id, username, name, age, phone, source),
         )
         await db.commit()

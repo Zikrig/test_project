@@ -71,6 +71,7 @@ async def notify_admin(
     username: str | None,
     name: str,
     age: int,
+    phone: str,
     source: str,
 ) -> None:
     username_line = f"@{username}" if username else "—"
@@ -78,6 +79,7 @@ async def notify_admin(
         "Новая регистрация на вечеринку\n\n"
         f"Имя: {name}\n"
         f"Возраст: {age}\n"
+        f"Телефон: {phone}\n"
         f"Откуда узнали: {source}\n"
         f"Telegram ID: {telegram_id}\n"
         f"Username: {username_line}"

@@ -26,7 +26,7 @@ WELCOME_IMAGE_PATH=data/images/image.png
 Положите приветственную картинку в `data/images/image.png`.
 
 В первой строке Google Sheet удобно завести заголовки:
-`Дата | Telegram ID | Username | Имя | Возраст | Источник`
+`Дата | Telegram ID | Username | Имя | Возраст | Телефон | Источник`
 
 ## Локальный запуск
 
