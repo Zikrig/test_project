@@ -1,0 +1,69 @@
+# Запуск вечериночного Telegram-бота
+
+## Что нужно
+
+- Python 3.14+ (локально) или Docker
+- Токен бота от [@BotFather](https://t.me/BotFather)
+- Файл `credentials.json` сервисного аккаунта Google
+- Google Sheet, к которой выдан доступ email из `credentials.json` (права редактора)
+- Ваш числовой Telegram ID для уведомлений о заявках
+
+## Настройка .env
+
+Скопируйте `.env.example` в `.env` и заполните:
+
+```env
+BOT_TOKEN=...
+ADMIN_TELEGRAM_ID=123456789
+TABLE_ID=...
+CREDENTIALS_PATH=credentials.json
+DATABASE_PATH=data/db/bot.db
+WELCOME_IMAGE_PATH=data/images/image.png
+```
+
+`TABLE_ID` — id таблицы из URL: `https://docs.google.com/spreadsheets/d/<TABLE_ID>/edit`
+
+Положите приветственную картинку в `data/images/image.png`.
+
+В первой строке Google Sheet удобно завести заголовки:
+`Дата | Telegram ID | Username | Имя | Возраст | Источник`
+
+## Локальный запуск
+
+```bash
+python -m venv .venv
+# Windows:
+.venv\Scripts\activate
+# Linux/macOS:
+source .venv/bin/activate
+
+pip install -r requirements.txt
+python bot.py
+```
+
+## Docker
+
+```bash
+docker compose up --build
+```
+
+Контейнер читает секреты из `.env`, монтирует `credentials.json` и картинку, SQLite хранится в volume `bot-data`.
+
+## Если api.telegram.org недоступен
+
+Ошибка `Cannot connect to host api.telegram.org:443` значит, что сеть режет Telegram API.
+Нужен прокси (VPN/SOCKS/HTTP) в `.env`:
+
+```env
+PROXY_URL=socks5://host.docker.internal:1080
+```
+
+`host.docker.internal` — адрес хоста из Docker (если прокси крутится на вашем ПК).
+После изменения `.env`: `docker compose up --build`.
+
+## Если что-то не работает
+
+- Бот не стартует: проверьте `BOT_TOKEN` и `ADMIN_TELEGRAM_ID` / `TELEGRAM_USER_ID` в `.env`.
+- Нет строк в Sheets: убедитесь, что сервисный аккаунт добавлен в доступ к таблице и `TABLE_ID` верный.
+- Нет уведомления админу: бот должен иметь возможность писать на admin id (хотя бы один раз напишите боту с этого аккаунта).
+- Нет картинки: проверьте путь `WELCOME_IMAGE_PATH` / файл `data/images/image.png`.

@@ -1,0 +1,14 @@
+services:
+  bot:
+    build: .
+    env_file: .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - bot-data:/app/data/db
+      - ./credentials.json:/app/credentials.json:ro
+      - ./data/images:/app/data/images:ro
+    restart: unless-stopped
+
+volumes:
+  bot-data:
