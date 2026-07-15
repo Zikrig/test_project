@@ -179,7 +179,7 @@ async def _finish_registration(
         return
     data = await state.get_data()
     await state.clear()
-    ok = await _persist_and_notify(
+    await _persist_and_notify(
         bot=callback.bot,
         telegram_id=callback.from_user.id,
         username=callback.from_user.username,
@@ -188,13 +188,11 @@ async def _finish_registration(
         phone=data["phone"],
         source=source,
     )
-    text = (
-        "Спасибо! Регистрация завершена. Мы свяжемся с вами."
-        if ok
-        else "Заявка принята локально, но не удалось отправить данные организаторам. "
-        "Попробуйте позже или напишите нам напрямую."
+    await edit_or_send_text(
+        callback,
+        "Спасибо! Регистрация завершена. Мы свяжемся с вами.",
+        reply_markup=main_menu_kb(),
     )
-    await edit_or_send_text(callback, text, reply_markup=main_menu_kb())
     await callback.answer()
 
 
@@ -207,7 +205,7 @@ async def _finish_registration_message(
         return
     data = await state.get_data()
     await state.clear()
-    ok = await _persist_and_notify(
+    await _persist_and_notify(
         bot=message.bot,
         telegram_id=message.from_user.id,
         username=message.from_user.username,
@@ -216,13 +214,10 @@ async def _finish_registration_message(
         phone=data["phone"],
         source=source,
     )
-    text = (
-        "Спасибо! Регистрация завершена. Мы свяжемся с вами."
-        if ok
-        else "Заявка принята локально, но не удалось отправить данные организаторам. "
-        "Попробуйте позже или напишите нам напрямую."
+    await message.answer(
+        "Спасибо! Регистрация завершена. Мы свяжемся с вами.",
+        reply_markup=main_menu_kb(),
     )
-    await message.answer(text, reply_markup=main_menu_kb())
 
 
 async def _persist_and_notify(
@@ -234,9 +229,8 @@ async def _persist_and_notify(
     age: int,
     phone: str,
     source: str,
-) -> bool:
+) -> None:
     await save_registration(telegram_id, username, name, age, phone, source)
-    ok = True
     try:
         await asyncio.to_thread(
             append_registration,
@@ -249,7 +243,6 @@ async def _persist_and_notify(
         )
     except Exception:
         logger.exception("Failed to append registration to Google Sheets")
-        ok = False
     try:
         await notify_admin(
             bot,
@@ -262,5 +255,3 @@ async def _persist_and_notify(
         )
     except Exception:
         logger.exception("Failed to notify admin")
-        ok = False
-    return ok
